@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.camera import FPSCounter, VideoCapture  # noqa: E402
+from src.color_classifier import HSVColorClassifier, draw_color_predictions  # noqa: E402
 from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 from src.perspective import warp_face  # noqa: E402
 from src.sticker_detector import draw_sticker_regions, extract_stickers  # noqa: E402
@@ -64,6 +65,7 @@ def run(source: str | int = 0) -> int:
     """Run the display loop until the source ends or the user quits."""
     counter = FPSCounter()
     detector = CubeFaceDetector()
+    classifier = HSVColorClassifier()
 
     try:
         with VideoCapture(source) as capture:
@@ -78,6 +80,8 @@ def run(source: str | int = 0) -> int:
                     normalized_face = warp_face(frame, detection.corners)
                     stickers = extract_stickers(normalized_face)
                     draw_sticker_regions(normalized_face, stickers)
+                    predictions = classifier.classify_regions(stickers)
+                    draw_color_predictions(normalized_face, stickers, predictions)
                     cv2.imshow(FACE_WINDOW_NAME, normalized_face)
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
