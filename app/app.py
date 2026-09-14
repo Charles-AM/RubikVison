@@ -25,6 +25,7 @@ from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 from src.perspective import warp_face  # noqa: E402
 from src.progress import calculate_visible_face_progress, draw_face_progress  # noqa: E402
 from src.sticker_detector import draw_sticker_regions, extract_stickers  # noqa: E402
+from src.timer import SolveTimer, draw_timer  # noqa: E402
 from src.tracker import TemporalColorTracker  # noqa: E402
 
 
@@ -127,6 +128,7 @@ def run(
     detector = CubeFaceDetector()
     classifier = HSVColorClassifier(calibration_path=CALIBRATION_PATH)
     tracker = TemporalColorTracker()
+    timer = SolveTimer()
 
     try:
         with VideoCapture(source) as capture:
@@ -138,6 +140,8 @@ def run(
                 )
             elif classifier.is_calibrated:
                 print("Loaded saved six-color camera calibration.")
+            if not calibrate_colors:
+                print("Timer controls: type S + Enter to start/stop, X + Enter to reset.")
             pending_calibration_label = None
             while True:
                 ok, frame = capture.read()
@@ -176,13 +180,13 @@ def run(
                     tracker.mark_missing()
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
+                draw_timer(frame, timer.snapshot())
                 cv2.imshow(WINDOW_NAME, frame)
 
                 key = cv2.waitKey(1) & 0xFF
-                if calibrate_colors:
-                    terminal_key = poll_terminal_key()
-                    if terminal_key is not None:
-                        key = terminal_key
+                terminal_key = poll_terminal_key()
+                if terminal_key is not None:
+                    key = terminal_key
                 if key in (ord("q"), ord("Q"), 27):
                     break
                 calibration_label = CALIBRATION_KEYS.get(key | 32)
@@ -201,6 +205,12 @@ def run(
                             center_color,
                         )
                         print(f"Captured {calibration_label} ({count}/6).")
+                elif not calibrate_colors and (key | 32) == ord("s"):
+                    timer.toggle()
+                    print(f"Timer {timer.snapshot().state}.")
+                elif not calibrate_colors and (key | 32) == ord("x"):
+                    timer.reset()
+                    print("Timer reset.")
     finally:
         cv2.destroyAllWindows()
 

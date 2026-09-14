@@ -17,10 +17,11 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Persistent camera/lighting calibration from six center stickers
 - Standard nine-character face state such as `RRWBGGYRB`
 - Visible-face consistency measured against the center sticker
+- Manual solve timer with ready, running, and stopped states
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Solve timing and solved-state confirmation are intentionally deferred to later checkpoints.
+Solved-state confirmation is intentionally deferred to the next checkpoint.
 
 ## Setup
 
@@ -61,6 +62,9 @@ Show live HSV values instead of confidence for color calibration:
 ```bash
 python app/app.py --debug-colors
 ```
+
+During a normal run, type `S` in Terminal and press Enter to start or stop the
+solve timer. Type `X` and press Enter to reset it.
 
 Calibrate once for the current camera and lighting:
 
@@ -127,6 +131,7 @@ RubikVison/
 │   ├── perspective.py  # Square perspective transform
 │   ├── progress.py     # Visible-face consistency metrics
 │   ├── sticker_detector.py # 3x3 sticker extraction
+│   ├── timer.py        # Manual solve timer
 │   └── tracker.py      # Temporal color smoothing
 ├── config/
 │   └── color_calibration.json # Local, generated calibration
@@ -138,6 +143,7 @@ RubikVison/
 │   ├── test_perspective.py
 │   ├── test_progress.py
 │   ├── test_sticker_detector.py
+│   ├── test_timer.py
 │   └── test_tracker.py
 ├── .gitignore
 ├── README.md
@@ -146,4 +152,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is solve timing, followed by stable solved-state detection.
+The next milestone is stable solved-state detection.
