@@ -7,7 +7,7 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Webcam capture (camera `0` by default)
 - Video-file capture
 - Live FPS counter
-- Traditional OpenCV face detection using edges and quadrilateral contours
+- Color-aware OpenCV face detection using edges and quadrilateral contours
 - Live detection outline and status
 - Perspective-corrected square face preview
 - Graceful shutdown with `Q` or `Esc`

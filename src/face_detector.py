@@ -66,10 +66,18 @@ class CubeFaceDetector:
         self.max_corner_cosine = max_corner_cosine
 
     def edge_map(self, frame: np.ndarray) -> np.ndarray:
-        """Build a cleaned edge image used for contour detection."""
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        edges = cv2.Canny(blurred, 50, 150)
+        """Build a color-aware edge image used for contour detection.
+
+        Combining edges from each BGR channel preserves boundaries that have
+        little grayscale contrast, especially red stickers beside black gaps.
+        """
+        blurred = cv2.GaussianBlur(frame, (5, 5), 0)
+        gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+        channels = [gray, *cv2.split(blurred)]
+        edges = np.zeros(gray.shape, dtype=np.uint8)
+        for channel in channels:
+            channel_edges = cv2.Canny(channel, 40, 120)
+            edges = cv2.bitwise_or(edges, channel_edges)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         return cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
 

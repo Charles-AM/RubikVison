@@ -17,6 +17,17 @@ def make_cube_face_image() -> np.ndarray:
     return image
 
 
+def make_low_grayscale_contrast_red_face() -> np.ndarray:
+    """Create red stickers whose grayscale value nearly matches the background."""
+    image = np.full((500, 700, 3), 65, dtype=np.uint8)
+    for row in range(3):
+        for column in range(3):
+            x = 200 + column * 100
+            y = 100 + row * 100
+            cv2.rectangle(image, (x + 5, y + 5), (x + 95, y + 95), (0, 0, 220), -1)
+    return image
+
+
 def test_order_corners_is_deterministic() -> None:
     shuffled = np.array([[80, 90], [10, 20], [10, 90], [80, 20]])
     ordered = order_corners(shuffled)
@@ -40,6 +51,13 @@ def test_detector_rejects_blank_frame() -> None:
     assert CubeFaceDetector().detect(frame) is None
 
 
+def test_detector_finds_red_face_with_low_grayscale_contrast() -> None:
+    detection = CubeFaceDetector().detect(make_low_grayscale_contrast_red_face())
+
+    assert detection is not None
+    assert detection.area > 75_000
+
+
 def test_draw_detection_modifies_frame() -> None:
     frame = make_cube_face_image()
     detection = CubeFaceDetector().detect(frame)
@@ -49,4 +67,3 @@ def test_draw_detection_modifies_frame() -> None:
 
     assert result is frame
     assert np.any(frame != before)
-
