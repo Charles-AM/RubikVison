@@ -1,0 +1,2 @@
+"""RubikVision application package."""
+
