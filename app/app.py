@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
         default="0",
         help="Camera index (default: 0) or path to a video file.",
     )
+    parser.add_argument(
+        "--debug-colors",
+        action="store_true",
+        help="Show HSV values instead of confidence in the normalized face.",
+    )
     return parser.parse_args()
 
 
@@ -61,7 +66,7 @@ def draw_fps(frame, fps: float):
     return frame
 
 
-def run(source: str | int = 0) -> int:
+def run(source: str | int = 0, debug_colors: bool = False) -> int:
     """Run the display loop until the source ends or the user quits."""
     counter = FPSCounter()
     detector = CubeFaceDetector()
@@ -81,7 +86,12 @@ def run(source: str | int = 0) -> int:
                     stickers = extract_stickers(normalized_face)
                     draw_sticker_regions(normalized_face, stickers)
                     predictions = classifier.classify_regions(stickers)
-                    draw_color_predictions(normalized_face, stickers, predictions)
+                    draw_color_predictions(
+                        normalized_face,
+                        stickers,
+                        predictions,
+                        show_hsv=debug_colors,
+                    )
                     cv2.imshow(FACE_WINDOW_NAME, normalized_face)
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
@@ -99,7 +109,7 @@ def run(source: str | int = 0) -> int:
 def main() -> int:
     args = parse_args()
     try:
-        return run(args.source)
+        return run(args.source, debug_colors=args.debug_colors)
     except KeyboardInterrupt:
         print("\nRubikVision stopped.")
         return 130

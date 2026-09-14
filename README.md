@@ -12,6 +12,7 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Perspective-corrected square face preview
 - Nine ordered sticker regions with border-safe center sampling
 - Baseline six-color HSV classification with per-sticker confidence
+- Warm-color separation using a camera-stable green/red channel ratio
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
@@ -49,6 +50,12 @@ Play a video file:
 
 ```bash
 python app/app.py --source path/to/video.mp4
+```
+
+Show live HSV values instead of confidence for color calibration:
+
+```bash
+python app/app.py --debug-colors
 ```
 
 Press `Q` or `Esc` while the video window is focused to quit. `Ctrl+C` in the

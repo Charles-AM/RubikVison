@@ -62,19 +62,36 @@ class HSVColorClassifier:
             confidence = 1.0 - saturation / max(self.white_saturation_max, 1)
             return "white", _clamp_confidence(0.55 + 0.45 * confidence)
 
-        # OpenCV hue uses [0, 179]. Red wraps around both ends.
-        if hue < 8 or hue >= 170:
-            label, center, half_width = "red", 0, 10
-        elif hue < 22:
-            label, center, half_width = "orange", 15, 10
-        elif hue < 38:
-            label, center, half_width = "yellow", 30, 12
-        elif hue < 90:
+        # Warm-color hue boundaries shift substantially with camera white
+        # balance. The green/red ratio is more stable: low for red, medium for
+        # orange, and high for yellow.
+        if hue < 45 or hue >= 160:
+            red_channel = max(color_bgr[2], 1)
+            green_red_ratio = color_bgr[1] / red_channel
+            if green_red_ratio < 0.42:
+                label, ratio_center, ratio_width = "red", 0.20, 0.30
+            elif green_red_ratio < 0.78:
+                label, ratio_center, ratio_width = "orange", 0.58, 0.28
+            else:
+                label, ratio_center, ratio_width = "yellow", 0.95, 0.30
+
+            ratio_score = max(
+                0.0, 1.0 - abs(green_red_ratio - ratio_center) / ratio_width
+            )
+            saturation_score = saturation / 255.0
+            value_score = min(value / max(self.dark_value_min * 2, 1), 1.0)
+            confidence = (
+                0.55 * ratio_score + 0.25 * saturation_score + 0.20 * value_score
+            )
+            return label, _clamp_confidence(confidence)
+
+        if hue < 90:
             label, center, half_width = "green", 60, 30
         elif hue < 145:
             label, center, half_width = "blue", 115, 30
         else:
-            label, center, half_width = "red", 179, 18
+            # Reflections can shift blue toward magenta; cubes have no purple.
+            label, center, half_width = "blue", 145, 25
 
         hue_distance = _circular_hue_distance(hue, center)
         hue_score = max(0.0, 1.0 - hue_distance / half_width)
@@ -113,6 +130,7 @@ def draw_color_predictions(
     normalized_face: np.ndarray,
     regions: list[StickerRegion],
     predictions: list[ColorPrediction],
+    show_hsv: bool = False,
 ) -> np.ndarray:
     """Overlay predicted color notation and confidence on every sticker."""
     if len(regions) != len(predictions):
@@ -120,7 +138,11 @@ def draw_color_predictions(
 
     for region, prediction in zip(regions, predictions, strict=True):
         x1, y1, x2, y2 = region.bounds
-        text = f"{prediction.notation} {prediction.confidence:.0%}"
+        if show_hsv:
+            hue, saturation, _ = prediction.hsv
+            text = f"{prediction.notation} H{hue} S{saturation}"
+        else:
+            text = f"{prediction.notation} {prediction.confidence:.0%}"
         label_color = LABEL_COLORS[prediction.label]
         cv2.rectangle(normalized_face, (x1 + 4, y2 - 28), (x2 - 4, y2 - 5), (0, 0, 0), -1)
         cv2.putText(
@@ -134,4 +156,3 @@ def draw_color_predictions(
             cv2.LINE_AA,
         )
     return normalized_face
-
