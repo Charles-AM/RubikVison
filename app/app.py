@@ -18,6 +18,7 @@ from src.color_classifier import HSVColorClassifier, draw_color_predictions  # n
 from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 from src.perspective import warp_face  # noqa: E402
 from src.sticker_detector import draw_sticker_regions, extract_stickers  # noqa: E402
+from src.tracker import TemporalColorTracker  # noqa: E402
 
 
 WINDOW_NAME = "RubikVision"
@@ -71,6 +72,7 @@ def run(source: str | int = 0, debug_colors: bool = False) -> int:
     counter = FPSCounter()
     detector = CubeFaceDetector()
     classifier = HSVColorClassifier()
+    tracker = TemporalColorTracker()
 
     try:
         with VideoCapture(source) as capture:
@@ -86,6 +88,7 @@ def run(source: str | int = 0, debug_colors: bool = False) -> int:
                     stickers = extract_stickers(normalized_face)
                     draw_sticker_regions(normalized_face, stickers)
                     predictions = classifier.classify_regions(stickers)
+                    predictions = tracker.update(predictions)
                     draw_color_predictions(
                         normalized_face,
                         stickers,
@@ -93,6 +96,8 @@ def run(source: str | int = 0, debug_colors: bool = False) -> int:
                         show_hsv=debug_colors,
                     )
                     cv2.imshow(FACE_WINDOW_NAME, normalized_face)
+                else:
+                    tracker.mark_missing()
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
                 cv2.imshow(WINDOW_NAME, frame)

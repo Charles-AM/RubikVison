@@ -13,10 +13,11 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Nine ordered sticker regions with border-safe center sampling
 - Baseline six-color HSV classification with per-sticker confidence
 - Warm-color separation using a camera-stable green/red channel ratio
+- Rolling five-frame color vote with automatic face-change reset
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Temporal smoothing is intentionally deferred to the next checkpoint.
+Face-state representation is intentionally deferred to the next checkpoint.
 
 ## Setup
 
@@ -102,13 +103,15 @@ RubikVison/
 │   ├── color_classifier.py # Baseline HSV sticker classifier
 │   ├── face_detector.py # Edge/contour cube-face detector
 │   ├── perspective.py  # Square perspective transform
-│   └── sticker_detector.py # 3x3 sticker extraction
+│   ├── sticker_detector.py # 3x3 sticker extraction
+│   └── tracker.py      # Temporal color smoothing
 ├── tests/
 │   ├── test_camera.py  # Hardware-independent unit tests
 │   ├── test_color_classifier.py
 │   ├── test_face_detector.py
 │   ├── test_perspective.py
-│   └── test_sticker_detector.py
+│   ├── test_sticker_detector.py
+│   └── test_tracker.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -116,4 +119,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is temporal smoothing for stable video predictions.
+The next milestone is face-state representation and visible-face consistency.
