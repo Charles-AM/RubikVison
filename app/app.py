@@ -63,10 +63,10 @@ def run(source: str | int = 0) -> int:
     """Run the display loop until the source ends or the user quits."""
     counter = FPSCounter()
     detector = CubeFaceDetector()
-    print("RubikVision is running. Focus the video window and press Q or Esc to quit.")
 
     try:
         with VideoCapture(source) as capture:
+            print("RubikVision is running. Focus the video window and press Q or Esc to quit.")
             while True:
                 ok, frame = capture.read()
                 if not ok or frame is None:

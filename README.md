@@ -66,6 +66,22 @@ Then run the app. A window titled **RubikVision** should show the selected video
 
 If macOS requests camera access, allow it for the terminal or application running Python. If the camera cannot be opened, check that another app is not using it or try `--source 1`.
 
+### macOS `Library not loaded` error
+
+Some macOS `Documents` folders are managed by a file-sync provider. Native
+OpenCV libraries can fail to load from a virtual environment stored there. If
+the error mentions `cv2.abi3.so`, `libavfilter`, or a failed `mmap`, keep the
+environment outside `Documents` and symlink it into the project:
+
+```bash
+mkdir -p ~/.virtualenvs
+python3.11 -m venv ~/.virtualenvs/rubikvision
+~/.virtualenvs/rubikvision/bin/python -m pip install -r requirements.txt
+mv .venv .venv-backup
+ln -s ~/.virtualenvs/rubikvision .venv
+source .venv/bin/activate
+```
+
 ## Project layout
 
 ```text
