@@ -16,10 +16,11 @@ Perspective correction and sticker color classification are intentionally deferr
 
 ## Setup
 
-Python 3.11 or newer is recommended.
+Python 3.11 is the tested runtime. Python 3.14 is currently avoided because the
+macOS NumPy/OpenCV combination can stall during import.
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
