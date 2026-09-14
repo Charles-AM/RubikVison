@@ -63,6 +63,7 @@ def run(source: str | int = 0) -> int:
     """Run the display loop until the source ends or the user quits."""
     counter = FPSCounter()
     detector = CubeFaceDetector()
+    print("RubikVision is running. Focus the video window and press Q or Esc to quit.")
 
     try:
         with VideoCapture(source) as capture:
@@ -92,6 +93,9 @@ def main() -> int:
     args = parse_args()
     try:
         return run(args.source)
+    except KeyboardInterrupt:
+        print("\nRubikVision stopped.")
+        return 130
     except (FileNotFoundError, RuntimeError, ValueError) as error:
         print(f"RubikVision error: {error}", file=sys.stderr)
         return 1

@@ -49,7 +49,10 @@ Play a video file:
 python app/app.py --source path/to/video.mp4
 ```
 
-Press `Q` or `Esc` while the video window is focused to quit. The app also exits cleanly when a video reaches its final frame.
+Press `Q` or `Esc` while the video window is focused to quit. `Ctrl+C` in the
+terminal also stops the app cleanly. The app exits automatically when a video
+reaches its final frame. On macOS, check behind the Terminal window if the
+OpenCV window does not immediately appear in front.
 
 ## Verify Phase 1
 

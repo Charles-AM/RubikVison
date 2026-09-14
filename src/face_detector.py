@@ -68,16 +68,14 @@ class CubeFaceDetector:
     def edge_map(self, frame: np.ndarray) -> np.ndarray:
         """Build a color-aware edge image used for contour detection.
 
-        Combining edges from each BGR channel preserves boundaries that have
-        little grayscale contrast, especially red stickers beside black gaps.
+        Using the brightest BGR channel preserves boundaries that have little
+        grayscale contrast, especially red stickers beside black gaps, while
+        requiring only one Canny pass per frame.
         """
         blurred = cv2.GaussianBlur(frame, (5, 5), 0)
-        gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
-        channels = [gray, *cv2.split(blurred)]
-        edges = np.zeros(gray.shape, dtype=np.uint8)
-        for channel in channels:
-            channel_edges = cv2.Canny(channel, 40, 120)
-            edges = cv2.bitwise_or(edges, channel_edges)
+        blue, green, red = cv2.split(blurred)
+        brightest_channel = cv2.max(cv2.max(blue, green), red)
+        edges = cv2.Canny(brightest_channel, 40, 120)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         return cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
 
