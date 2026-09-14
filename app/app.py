@@ -19,8 +19,10 @@ from src.color_classifier import (  # noqa: E402
     HSVColorClassifier,
     draw_color_predictions,
 )
+from src.cube_state import FaceState  # noqa: E402
 from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 from src.perspective import warp_face  # noqa: E402
+from src.progress import calculate_visible_face_progress, draw_face_progress  # noqa: E402
 from src.sticker_detector import draw_sticker_regions, extract_stickers  # noqa: E402
 from src.tracker import TemporalColorTracker  # noqa: E402
 
@@ -117,6 +119,9 @@ def run(
                     predictions = classifier.classify_regions(stickers)
                     center_color = stickers[4].median_bgr
                     predictions = tracker.update(predictions)
+                    face_state = FaceState.from_predictions(predictions)
+                    progress = calculate_visible_face_progress(face_state)
+                    draw_face_progress(frame, face_state, progress)
                     draw_color_predictions(
                         normalized_face,
                         stickers,

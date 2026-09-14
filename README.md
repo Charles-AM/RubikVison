@@ -15,10 +15,12 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Warm-color separation using a camera-stable green/red channel ratio
 - Rolling five-frame color vote with automatic face-change reset
 - Persistent camera/lighting calibration from six center stickers
+- Standard nine-character face state such as `RRWBGGYRB`
+- Visible-face consistency measured against the center sticker
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Face-state representation is intentionally deferred to the next checkpoint.
+Solve timing and solved-state confirmation are intentionally deferred to later checkpoints.
 
 ## Setup
 
@@ -115,8 +117,10 @@ RubikVison/
 ├── src/
 │   ├── camera.py       # Capture and FPS components
 │   ├── color_classifier.py # Baseline HSV sticker classifier
+│   ├── cube_state.py   # Standard face-state representation
 │   ├── face_detector.py # Edge/contour cube-face detector
 │   ├── perspective.py  # Square perspective transform
+│   ├── progress.py     # Visible-face consistency metrics
 │   ├── sticker_detector.py # 3x3 sticker extraction
 │   └── tracker.py      # Temporal color smoothing
 ├── config/
@@ -124,8 +128,10 @@ RubikVison/
 ├── tests/
 │   ├── test_camera.py  # Hardware-independent unit tests
 │   ├── test_color_classifier.py
+│   ├── test_cube_state.py
 │   ├── test_face_detector.py
 │   ├── test_perspective.py
+│   ├── test_progress.py
 │   ├── test_sticker_detector.py
 │   └── test_tracker.py
 ├── .gitignore
@@ -135,4 +141,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is face-state representation and visible-face consistency.
+The next milestone is solve timing, followed by stable solved-state detection.
