@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import select
 import sys
 
 import cv2
@@ -38,6 +39,23 @@ CALIBRATION_KEYS = {
     ord("b"): "blue",
     ord("g"): "green",
 }
+
+
+def parse_terminal_key(command: str) -> int | None:
+    """Convert a terminal command into the same key code OpenCV returns."""
+    value = command.strip().lower()
+    return ord(value[0]) if value else None
+
+
+def poll_terminal_key() -> int | None:
+    """Read a completed terminal line without blocking the video loop."""
+    try:
+        readable, _, _ = select.select([sys.stdin], [], [], 0)
+    except (OSError, ValueError):
+        return None
+    if not readable:
+        return None
+    return parse_terminal_key(sys.stdin.readline())
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,7 +120,10 @@ def run(
         with VideoCapture(source) as capture:
             print("RubikVision is running. Focus the video window and press Q or Esc to quit.")
             if calibrate_colors:
-                print("Calibration: show a face and press W, Y, R, O, B, or G.")
+                print(
+                    "Calibration: show a face, then type W, Y, R, O, B, or G "
+                    "in Terminal and press Enter."
+                )
             elif classifier.is_calibrated:
                 print("Loaded saved six-color camera calibration.")
             while True:
@@ -136,6 +157,10 @@ def run(
                 cv2.imshow(WINDOW_NAME, frame)
 
                 key = cv2.waitKey(1) & 0xFF
+                if calibrate_colors:
+                    terminal_key = poll_terminal_key()
+                    if terminal_key is not None:
+                        key = terminal_key
                 if key in (ord("q"), ord("Q"), 27):
                     break
                 calibration_label = CALIBRATION_KEYS.get(key | 32)

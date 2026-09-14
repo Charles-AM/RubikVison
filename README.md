@@ -68,12 +68,13 @@ Calibrate once for the current camera and lighting:
 python app/app.py --calibrate-colors
 ```
 
-Show one face at a time and press its key while the face is detected: `W` for
+Show one face at a time, then type its key in Terminal and press Enter: `W` for
 white, `Y` for yellow, `R` for red, `O` for orange, `B` for blue, and `G` for
-green. The center sticker is saved as that color's reference. After all six are
-captured, later runs load `config/color_calibration.json` automatically. Repeat
-the command and press a color key again to replace that color's reference when
-room lighting changes substantially.
+green. The center sticker is saved as that color's reference. Camera-window key
+shortcuts also remain available. After all six are captured, later runs load
+`config/color_calibration.json` automatically. Repeat the command and enter a
+color key again to replace that color's reference when room lighting changes
+substantially.
 
 Press `Q` or `Esc` while the video window is focused to quit. `Ctrl+C` in the
 terminal also stops the app cleanly. The app exits automatically when a video
