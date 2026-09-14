@@ -1,16 +1,18 @@
 # RubikVision
 
-RubikVision is a real-time computer-vision project for tracking Rubik's Cube solves. The current Phase 1 foundation accepts a webcam or video file, displays frames in an OpenCV window, and overlays the current frame rate.
+RubikVision is a real-time computer-vision project for tracking Rubik's Cube solves. The current prototype accepts a webcam or video file, displays frames in an OpenCV window, overlays the current frame rate, and locates a square-like visible cube face.
 
-## Phase 1 features
+## Current features
 
 - Webcam capture (camera `0` by default)
 - Video-file capture
 - Live FPS counter
+- Traditional OpenCV face detection using edges and quadrilateral contours
+- Live detection outline and status
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Cube-face detection is intentionally not part of this phase.
+Perspective correction and sticker color classification are intentionally deferred to later checkpoints.
 
 ## Setup
 
@@ -55,7 +57,7 @@ Run the automated tests:
 python -m pytest
 ```
 
-Then run the app. A window titled **RubikVision** should show the selected video source with an `FPS` value in the top-left corner. Confirm that `Q` closes the window and releases the source.
+Then run the app. A window titled **RubikVision** should show the selected video source with an `FPS` value in the top-left corner. When a sufficiently large cube face is visible, a green quadrilateral and `Cube face: detected` status should appear. Confirm that `Q` closes the window and releases the source.
 
 If macOS requests camera access, allow it for the terminal or application running Python. If the camera cannot be opened, check that another app is not using it or try `--source 1`.
 
@@ -66,9 +68,11 @@ RubikVison/
 ├── app/
 │   └── app.py          # CLI and OpenCV display loop
 ├── src/
-│   └── camera.py       # Capture and FPS components
+│   ├── camera.py       # Capture and FPS components
+│   └── face_detector.py # Edge/contour cube-face detector
 ├── tests/
-│   └── test_camera.py  # Hardware-independent unit tests
+│   ├── test_camera.py  # Hardware-independent unit tests
+│   └── test_face_detector.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -76,5 +80,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is traditional OpenCV cube-face detection and perspective correction, after Phase 1 has been verified with a real webcam or sample video.
-
+The next milestone is perspective correction, followed by 3×3 sticker-region extraction.

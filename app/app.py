@@ -1,4 +1,4 @@
-"""RubikVision Phase 1 OpenCV application."""
+"""RubikVision OpenCV application."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.camera import FPSCounter, VideoCapture  # noqa: E402
+from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 
 
 WINDOW_NAME = "RubikVision"
@@ -59,6 +60,7 @@ def draw_fps(frame, fps: float):
 def run(source: str | int = 0) -> int:
     """Run the display loop until the source ends or the user quits."""
     counter = FPSCounter()
+    detector = CubeFaceDetector()
 
     try:
         with VideoCapture(source) as capture:
@@ -67,6 +69,8 @@ def run(source: str | int = 0) -> int:
                 if not ok or frame is None:
                     break
 
+                detection = detector.detect(frame)
+                draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
                 cv2.imshow(WINDOW_NAME, frame)
 
@@ -90,4 +94,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
