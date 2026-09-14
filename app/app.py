@@ -15,9 +15,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.camera import FPSCounter, VideoCapture  # noqa: E402
 from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
+from src.perspective import warp_face  # noqa: E402
 
 
 WINDOW_NAME = "RubikVision"
+FACE_WINDOW_NAME = "RubikVision - Normalized Face"
 
 
 def parse_args() -> argparse.Namespace:
@@ -70,6 +72,9 @@ def run(source: str | int = 0) -> int:
                     break
 
                 detection = detector.detect(frame)
+                if detection is not None:
+                    normalized_face = warp_face(frame, detection.corners)
+                    cv2.imshow(FACE_WINDOW_NAME, normalized_face)
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
                 cv2.imshow(WINDOW_NAME, frame)
