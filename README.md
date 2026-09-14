@@ -10,10 +10,11 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Color-aware OpenCV face detection using edges and quadrilateral contours
 - Live detection outline and status
 - Perspective-corrected square face preview
+- Nine ordered sticker regions with border-safe center sampling
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Sticker-region extraction and color classification are intentionally deferred to later checkpoints.
+Sticker color classification is intentionally deferred to the next checkpoint.
 
 ## Setup
 
@@ -62,7 +63,7 @@ Run the automated tests:
 python -m pytest
 ```
 
-Then run the app. A window titled **RubikVision** should show the selected video source with an `FPS` value in the top-left corner. When a sufficiently large cube face is visible, a green quadrilateral and `Cube face: detected` status should appear. A second window titled **RubikVision - Normalized Face** displays the perspective-corrected square face. Confirm that `Q` closes the windows and releases the source.
+Then run the app. A window titled **RubikVision** should show the selected video source with an `FPS` value in the top-left corner. When a sufficiently large cube face is visible, a green quadrilateral and `Cube face: detected` status should appear. A second window titled **RubikVision - Normalized Face** displays the perspective-corrected square face with nine numbered sticker regions. The smaller green boxes indicate the pixels sampled for future color classification. Confirm that `Q` closes the windows and releases the source.
 
 If macOS requests camera access, allow it for the terminal or application running Python. If the camera cannot be opened, check that another app is not using it or try `--source 1`.
 
@@ -91,11 +92,13 @@ RubikVison/
 ├── src/
 │   ├── camera.py       # Capture and FPS components
 │   ├── face_detector.py # Edge/contour cube-face detector
-│   └── perspective.py  # Square perspective transform
+│   ├── perspective.py  # Square perspective transform
+│   └── sticker_detector.py # 3x3 sticker extraction
 ├── tests/
 │   ├── test_camera.py  # Hardware-independent unit tests
 │   ├── test_face_detector.py
-│   └── test_perspective.py
+│   ├── test_perspective.py
+│   └── test_sticker_detector.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -103,4 +106,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is 3×3 sticker-region extraction.
+The next milestone is baseline sticker color classification.
