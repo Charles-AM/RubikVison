@@ -76,6 +76,10 @@ shortcuts also remain available. After all six are captured, later runs load
 color key again to replace that color's reference when room lighting changes
 substantially.
 
+Wait for the `Captured <color> (N/6).` confirmation before moving to the next
+face. If detection drops at the moment a command is entered, the app keeps that
+command pending and captures it automatically when the face is detected again.
+
 Press `Q` or `Esc` while the video window is focused to quit. `Ctrl+C` in the
 terminal also stops the app cleanly. The app exits automatically when a video
 reaches its final frame. On macOS, check behind the Terminal window if the

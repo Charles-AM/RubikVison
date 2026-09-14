@@ -58,6 +58,18 @@ def poll_terminal_key() -> int | None:
     return parse_terminal_key(sys.stdin.readline())
 
 
+def capture_color_reference(
+    classifier: HSVColorClassifier,
+    tracker: TemporalColorTracker,
+    label: str,
+    center_color: tuple[int, int, int],
+) -> int:
+    """Save one calibration reference and return the completed color count."""
+    classifier.calibrate(label, center_color)
+    tracker.reset()
+    return len(REQUIRED_COLORS.intersection(classifier.prototypes))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Display a webcam or video file with a live FPS counter."
@@ -126,6 +138,7 @@ def run(
                 )
             elif classifier.is_calibrated:
                 print("Loaded saved six-color camera calibration.")
+            pending_calibration_label = None
             while True:
                 ok, frame = capture.read()
                 if not ok or frame is None:
@@ -137,8 +150,17 @@ def run(
                     normalized_face = warp_face(frame, detection.corners)
                     stickers = extract_stickers(normalized_face)
                     draw_sticker_regions(normalized_face, stickers)
-                    predictions = classifier.classify_regions(stickers)
                     center_color = stickers[4].median_bgr
+                    if calibrate_colors and pending_calibration_label is not None:
+                        count = capture_color_reference(
+                            classifier,
+                            tracker,
+                            pending_calibration_label,
+                            center_color,
+                        )
+                        print(f"Captured {pending_calibration_label} ({count}/6).")
+                        pending_calibration_label = None
+                    predictions = classifier.classify_regions(stickers)
                     predictions = tracker.update(predictions)
                     face_state = FaceState.from_predictions(predictions)
                     progress = calculate_visible_face_progress(face_state)
@@ -164,11 +186,21 @@ def run(
                 if key in (ord("q"), ord("Q"), 27):
                     break
                 calibration_label = CALIBRATION_KEYS.get(key | 32)
-                if calibrate_colors and calibration_label and center_color is not None:
-                    classifier.calibrate(calibration_label, center_color)
-                    tracker.reset()
-                    count = len(REQUIRED_COLORS.intersection(classifier.prototypes))
-                    print(f"Captured {calibration_label} ({count}/6).")
+                if calibrate_colors and calibration_label:
+                    if center_color is None:
+                        pending_calibration_label = calibration_label
+                        print(
+                            f"Waiting to capture {calibration_label}: "
+                            "hold that face still until detection returns."
+                        )
+                    else:
+                        count = capture_color_reference(
+                            classifier,
+                            tracker,
+                            calibration_label,
+                            center_color,
+                        )
+                        print(f"Captured {calibration_label} ({count}/6).")
     finally:
         cv2.destroyAllWindows()
 
