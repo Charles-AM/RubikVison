@@ -14,6 +14,7 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Baseline six-color HSV classification with per-sticker confidence
 - Warm-color separation using a camera-stable green/red channel ratio
 - Rolling five-frame color vote with automatic face-change reset
+- Persistent camera/lighting calibration from six center stickers
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
@@ -58,6 +59,19 @@ Show live HSV values instead of confidence for color calibration:
 ```bash
 python app/app.py --debug-colors
 ```
+
+Calibrate once for the current camera and lighting:
+
+```bash
+python app/app.py --calibrate-colors
+```
+
+Show one face at a time and press its key while the face is detected: `W` for
+white, `Y` for yellow, `R` for red, `O` for orange, `B` for blue, and `G` for
+green. The center sticker is saved as that color's reference. After all six are
+captured, later runs load `config/color_calibration.json` automatically. Repeat
+the command and press a color key again to replace that color's reference when
+room lighting changes substantially.
 
 Press `Q` or `Esc` while the video window is focused to quit. `Ctrl+C` in the
 terminal also stops the app cleanly. The app exits automatically when a video
@@ -105,6 +119,8 @@ RubikVison/
 │   ├── perspective.py  # Square perspective transform
 │   ├── sticker_detector.py # 3x3 sticker extraction
 │   └── tracker.py      # Temporal color smoothing
+├── config/
+│   └── color_calibration.json # Local, generated calibration
 ├── tests/
 │   ├── test_camera.py  # Hardware-independent unit tests
 │   ├── test_color_classifier.py

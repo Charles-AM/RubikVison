@@ -14,7 +14,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.camera import FPSCounter, VideoCapture  # noqa: E402
-from src.color_classifier import HSVColorClassifier, draw_color_predictions  # noqa: E402
+from src.color_classifier import (  # noqa: E402
+    REQUIRED_COLORS,
+    HSVColorClassifier,
+    draw_color_predictions,
+)
 from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 from src.perspective import warp_face  # noqa: E402
 from src.sticker_detector import draw_sticker_regions, extract_stickers  # noqa: E402
@@ -23,6 +27,15 @@ from src.tracker import TemporalColorTracker  # noqa: E402
 
 WINDOW_NAME = "RubikVision"
 FACE_WINDOW_NAME = "RubikVision - Normalized Face"
+CALIBRATION_PATH = PROJECT_ROOT / "config" / "color_calibration.json"
+CALIBRATION_KEYS = {
+    ord("w"): "white",
+    ord("y"): "yellow",
+    ord("r"): "red",
+    ord("o"): "orange",
+    ord("b"): "blue",
+    ord("g"): "green",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,6 +51,11 @@ def parse_args() -> argparse.Namespace:
         "--debug-colors",
         action="store_true",
         help="Show HSV values instead of confidence in the normalized face.",
+    )
+    parser.add_argument(
+        "--calibrate-colors",
+        action="store_true",
+        help="Capture the visible center sticker with W/Y/R/O/B/G keys.",
     )
     return parser.parse_args()
 
@@ -67,27 +85,37 @@ def draw_fps(frame, fps: float):
     return frame
 
 
-def run(source: str | int = 0, debug_colors: bool = False) -> int:
+def run(
+    source: str | int = 0,
+    debug_colors: bool = False,
+    calibrate_colors: bool = False,
+) -> int:
     """Run the display loop until the source ends or the user quits."""
     counter = FPSCounter()
     detector = CubeFaceDetector()
-    classifier = HSVColorClassifier()
+    classifier = HSVColorClassifier(calibration_path=CALIBRATION_PATH)
     tracker = TemporalColorTracker()
 
     try:
         with VideoCapture(source) as capture:
             print("RubikVision is running. Focus the video window and press Q or Esc to quit.")
+            if calibrate_colors:
+                print("Calibration: show a face and press W, Y, R, O, B, or G.")
+            elif classifier.is_calibrated:
+                print("Loaded saved six-color camera calibration.")
             while True:
                 ok, frame = capture.read()
                 if not ok or frame is None:
                     break
 
+                center_color = None
                 detection = detector.detect(frame)
                 if detection is not None:
                     normalized_face = warp_face(frame, detection.corners)
                     stickers = extract_stickers(normalized_face)
                     draw_sticker_regions(normalized_face, stickers)
                     predictions = classifier.classify_regions(stickers)
+                    center_color = stickers[4].median_bgr
                     predictions = tracker.update(predictions)
                     draw_color_predictions(
                         normalized_face,
@@ -105,6 +133,12 @@ def run(source: str | int = 0, debug_colors: bool = False) -> int:
                 key = cv2.waitKey(1) & 0xFF
                 if key in (ord("q"), ord("Q"), 27):
                     break
+                calibration_label = CALIBRATION_KEYS.get(key | 32)
+                if calibrate_colors and calibration_label and center_color is not None:
+                    classifier.calibrate(calibration_label, center_color)
+                    tracker.reset()
+                    count = len(REQUIRED_COLORS.intersection(classifier.prototypes))
+                    print(f"Captured {calibration_label} ({count}/6).")
     finally:
         cv2.destroyAllWindows()
 
@@ -114,7 +148,11 @@ def run(source: str | int = 0, debug_colors: bool = False) -> int:
 def main() -> int:
     args = parse_args()
     try:
-        return run(args.source, debug_colors=args.debug_colors)
+        return run(
+            args.source,
+            debug_colors=args.debug_colors,
+            calibrate_colors=args.calibrate_colors,
+        )
     except KeyboardInterrupt:
         print("\nRubikVision stopped.")
         return 130

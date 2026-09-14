@@ -7,6 +7,16 @@ from src.color_classifier import HSVColorClassifier, bgr_to_hsv, draw_color_pred
 from src.sticker_detector import extract_stickers
 
 
+REFERENCE_COLORS = {
+    "white": (230, 235, 240),
+    "yellow": (20, 220, 240),
+    "red": (20, 45, 220),
+    "orange": (20, 125, 235),
+    "blue": (220, 55, 25),
+    "green": (30, 190, 45),
+}
+
+
 @pytest.mark.parametrize(
     ("bgr", "expected"),
     [
@@ -72,3 +82,38 @@ def test_draw_predictions_requires_matching_lengths() -> None:
     regions = extract_stickers(face)
     with pytest.raises(ValueError, match="same length"):
         draw_color_predictions(face, regions, [])
+
+
+def test_complete_calibration_is_saved_and_reloaded(tmp_path) -> None:
+    calibration_path = tmp_path / "color_calibration.json"
+    classifier = HSVColorClassifier(calibration_path=calibration_path)
+    for label, color in REFERENCE_COLORS.items():
+        classifier.calibrate(label, color)
+
+    reloaded = HSVColorClassifier(calibration_path=calibration_path)
+
+    assert reloaded.is_calibrated
+    assert reloaded.prototypes == REFERENCE_COLORS
+
+
+@pytest.mark.parametrize(("label", "bgr"), REFERENCE_COLORS.items())
+def test_calibrated_classifier_handles_brightness_change(tmp_path, label, bgr) -> None:
+    classifier = HSVColorClassifier(calibration_path=tmp_path / "calibration.json")
+    for reference_label, color in REFERENCE_COLORS.items():
+        classifier.calibrate(reference_label, color)
+    dimmed = tuple(round(channel * 0.55) for channel in bgr)
+
+    prediction, confidence = classifier.classify(dimmed)
+
+    assert prediction == label
+    assert confidence >= 0.5
+
+
+def test_invalid_calibration_file_falls_back_to_hsv(tmp_path) -> None:
+    calibration_path = tmp_path / "color_calibration.json"
+    calibration_path.write_text("not json")
+
+    classifier = HSVColorClassifier(calibration_path=calibration_path)
+
+    assert not classifier.is_calibrated
+    assert classifier.classify((0, 0, 255))[0] == "red"

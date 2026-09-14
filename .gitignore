@@ -20,9 +20,11 @@ data/raw/*
 data/processed/*
 outputs/*
 models/*
+config/color_calibration.json
 
 # Keep empty project directories in Git
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !outputs/.gitkeep
 !models/.gitkeep
+!config/.gitkeep
