@@ -13,6 +13,13 @@ def test_parse_terminal_key_uses_first_character() -> None:
     assert parse_terminal_key("red\n") == ord("r")
 
 
+def test_red_calibration_uses_r_key() -> None:
+    from app.app import CALIBRATION_KEYS
+
+    assert CALIBRATION_KEYS[parse_terminal_key("r\n")] == "red"
+    assert parse_terminal_key("s\n") not in CALIBRATION_KEYS
+
+
 def test_parse_terminal_key_ignores_empty_command() -> None:
     assert parse_terminal_key("  \n") is None
 

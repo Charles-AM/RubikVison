@@ -152,6 +152,7 @@ def run(
                     break
 
                 center_color = None
+                solved_status = solved_detector.status()
                 detection = detector.detect(frame)
                 if detection is not None:
                     normalized_face = warp_face(frame, detection.corners)
@@ -176,13 +177,14 @@ def run(
                     face_state = FaceState.from_predictions(predictions)
                     progress = calculate_visible_face_progress(face_state)
                     draw_face_progress(frame, face_state, progress)
-                    average_confidence = sum(
-                        prediction.confidence for prediction in predictions
-                    ) / len(predictions)
-                    solved_status = solved_detector.update(
-                        face_state,
-                        average_confidence=average_confidence,
-                    )
+                    if not calibrate_colors:
+                        average_confidence = sum(
+                            prediction.confidence for prediction in predictions
+                        ) / len(predictions)
+                        solved_status = solved_detector.update(
+                            face_state,
+                            average_confidence=average_confidence,
+                        )
                     draw_color_predictions(
                         normalized_face,
                         stickers,
@@ -192,16 +194,18 @@ def run(
                     cv2.imshow(FACE_WINDOW_NAME, normalized_face)
                 else:
                     tracker.mark_missing()
-                    solved_detector.mark_missing()
-                    solved_status = solved_detector.status()
+                    if not calibrate_colors:
+                        solved_detector.mark_missing()
+                        solved_status = solved_detector.status()
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
-                draw_timer(frame, timer.snapshot())
-                draw_solved_status(frame, solved_status)
-                if solved_status.cube_solved and not completion_announced:
-                    timer.stop()
-                    completion_announced = True
-                    print(f"Cube solved in {timer.snapshot().display_time}.")
+                if not calibrate_colors:
+                    draw_timer(frame, timer.snapshot())
+                    draw_solved_status(frame, solved_status)
+                    if solved_status.cube_solved and not completion_announced:
+                        timer.stop()
+                        completion_announced = True
+                        print(f"Cube solved in {timer.snapshot().display_time}.")
                 cv2.imshow(WINDOW_NAME, frame)
 
                 key = cv2.waitKey(1) & 0xFF
@@ -230,6 +234,11 @@ def run(
                             f"Captured {calibration_label} "
                             f"({count}/6, {samples} samples)."
                         )
+                elif calibrate_colors and key != 255:
+                    print(
+                        f"Ignored '{chr(key)}'. Enter the face color: "
+                        "W, Y, R, O, B, or G."
+                    )
                 elif not calibrate_colors and (key | 32) == ord("s"):
                     if timer.snapshot().state != "running":
                         solved_detector.reset()
