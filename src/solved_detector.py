@@ -26,16 +26,22 @@ class SolvedStateDetector:
         self,
         required_stable_frames: int = 15,
         minimum_confidence: float = 0.55,
+        unsolved_stable_frames: int = 5,
     ) -> None:
         if required_stable_frames < 1:
             raise ValueError("required_stable_frames must be at least 1.")
         if not 0 <= minimum_confidence <= 1:
             raise ValueError("minimum_confidence must be in the range [0, 1].")
+        if unsolved_stable_frames < 1:
+            raise ValueError("unsolved_stable_frames must be at least 1.")
         self.required_stable_frames = required_stable_frames
         self.minimum_confidence = minimum_confidence
+        self.unsolved_stable_frames = unsolved_stable_frames
         self._current_center: str | None = None
         self._stable_frames = 0
         self._confirmed_faces: set[str] = set()
+        self._unsolved_center: str | None = None
+        self._unsolved_frames = 0
 
     def update(self, state: FaceState, average_confidence: float = 1.0) -> SolvedStatus:
         """Process one observed face and return current completion evidence."""
@@ -45,12 +51,18 @@ class SolvedStateDetector:
         if not face_uniform or not sufficiently_confident:
             self._current_center = None
             self._stable_frames = 0
-            # Any current unsolved evidence invalidates faces observed earlier
-            # in the solve; all six must be reconfirmed after this point.
             if not face_uniform:
-                self._confirmed_faces.clear()
+                if state.center == self._unsolved_center:
+                    self._unsolved_frames += 1
+                else:
+                    self._unsolved_center = state.center
+                    self._unsolved_frames = 1
+                if self._unsolved_frames >= self.unsolved_stable_frames:
+                    self._confirmed_faces.discard(state.center)
             return self.status()
 
+        self._unsolved_center = None
+        self._unsolved_frames = 0
         if state.center == self._current_center:
             self._stable_frames += 1
         else:
@@ -65,11 +77,15 @@ class SolvedStateDetector:
         """Break the consecutive-frame streak when no face is visible."""
         self._current_center = None
         self._stable_frames = 0
+        self._unsolved_center = None
+        self._unsolved_frames = 0
 
     def reset(self) -> None:
         self._current_center = None
         self._stable_frames = 0
         self._confirmed_faces.clear()
+        self._unsolved_center = None
+        self._unsolved_frames = 0
 
     def status(self) -> SolvedStatus:
         visible_solved = (
@@ -103,7 +119,11 @@ def draw_solved_status(frame: np.ndarray, status: SolvedStatus) -> np.ndarray:
         line_one = "Visible face: not confirmed solved"
         color = (180, 180, 180)
 
-    lines = (line_one, f"Faces confirmed: {len(status.confirmed_faces)}/6")
+    confirmed = ",".join(sorted(status.confirmed_faces)) or "none"
+    lines = (
+        line_one,
+        f"Faces confirmed: {len(status.confirmed_faces)}/6 ({confirmed})",
+    )
     for index, text in enumerate(lines):
         origin = (16, 194 + index * 30)
         cv2.putText(
@@ -127,4 +147,3 @@ def draw_solved_status(frame: np.ndarray, status: SolvedStatus) -> np.ndarray:
             cv2.LINE_AA,
         )
     return frame
-

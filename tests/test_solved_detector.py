@@ -34,13 +34,25 @@ def test_missing_frame_breaks_confirmation_streak() -> None:
     assert not status.visible_face_solved
 
 
-def test_unsolved_face_clears_previous_completion_evidence() -> None:
-    detector = SolvedStateDetector(required_stable_frames=1)
+def test_single_unsolved_frame_does_not_remove_confirmation() -> None:
+    detector = SolvedStateDetector(required_stable_frames=1, unsolved_stable_frames=2)
     detector.update(solved_face("R"))
 
     status = detector.update(FaceState(tuple("RRRRGRRRR")))
 
-    assert not status.confirmed_faces
+    assert status.confirmed_faces == {"R"}
+
+
+def test_sustained_unsolved_face_removes_only_that_center() -> None:
+    detector = SolvedStateDetector(required_stable_frames=1, unsolved_stable_frames=2)
+    detector.update(solved_face("R"))
+    detector.update(solved_face("G"))
+    unsolved_red = FaceState(tuple("GGGGRGGGG"))
+
+    detector.update(unsolved_red)
+    status = detector.update(unsolved_red)
+
+    assert status.confirmed_faces == {"G"}
     assert not status.cube_solved
 
 
@@ -63,6 +75,15 @@ def test_all_six_confirmed_faces_complete_cube() -> None:
     assert status.confirmed_faces == set("WYROBG")
 
 
+def test_transitional_unsolved_faces_do_not_erase_scan_progress() -> None:
+    detector = SolvedStateDetector(required_stable_frames=1, unsolved_stable_frames=3)
+    detector.update(solved_face("B"))
+    detector.update(FaceState(tuple("BRBBGBBBB")))
+    detector.update(solved_face("O"))
+
+    assert detector.status().confirmed_faces == {"B", "O"}
+
+
 def test_draw_solved_status_modifies_frame() -> None:
     detector = SolvedStateDetector(required_stable_frames=1)
     status = detector.update(solved_face("Y"))
@@ -73,4 +94,3 @@ def test_draw_solved_status_modifies_frame() -> None:
 
     assert result is frame
     assert np.any(frame != before)
-

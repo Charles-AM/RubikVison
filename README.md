@@ -70,9 +70,11 @@ solve timer. Type `X` and press Enter to reset it.
 
 A uniform visible face must remain stable for 15 consecutive frames before it
 is confirmed. To confirm the entire cube, show all six solved faces to the
-camera after the last unsolved face was observed. The timer stops automatically
-when all six center colors have been confirmed. This is visual evidence, not a
-full simultaneous reconstruction of the hidden cube state.
+camera. Brief transitional frames while rotating the cube are ignored; five
+consecutive unsolved observations remove only that center color's confirmation.
+The timer stops automatically when all six center colors have been confirmed.
+This is visual evidence, not a full simultaneous reconstruction of the hidden
+cube state.
 
 Calibrate once for the current camera and lighting:
 
