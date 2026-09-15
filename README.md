@@ -19,7 +19,7 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Standard nine-character face state such as `RRWBGGYRB`
 - Visible-face consistency measured against the center sticker
 - Manual solve timer with ready, running, and stopped states
-- Fifteen-frame solved-face confirmation
+- Fifteen-frame solved-face evidence with gradual noise decay
 - Six-face solved-cube evidence with automatic timer stop
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
@@ -69,12 +69,12 @@ python app/app.py --debug-colors
 During a normal run, type `S` in Terminal and press Enter to start or stop the
 solve timer. Type `X` and press Enter to reset it.
 
-A uniform visible face must remain stable for 15 consecutive frames before it
-is confirmed. To confirm the entire cube, show all six solved faces to the
-camera. Brief transitional frames while rotating the cube are ignored; five
-consecutive unsolved observations remove only that center color's confirmation.
-Up to five brief missed detections are tolerated without restarting the
-15-frame confirmation streak.
+A uniform visible face builds toward 15 frames of evidence before it is
+confirmed. Isolated glare or classification errors reduce the evidence by one
+instead of resetting it to zero. To confirm the entire cube, show all six solved
+faces to the camera. Five consecutive unsolved observations remove only that
+center color's confirmation, and up to ten brief missed detections are tolerated
+without restarting the active evidence count.
 The timer stops automatically when all six center colors have been confirmed.
 This is visual evidence, not a full simultaneous reconstruction of the hidden
 cube state.

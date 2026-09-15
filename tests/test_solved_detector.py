@@ -55,6 +55,37 @@ def test_single_unsolved_frame_does_not_remove_confirmation() -> None:
     assert status.confirmed_faces == {"R"}
 
 
+def test_isolated_bad_frames_decay_instead_of_resetting_evidence() -> None:
+    detector = SolvedStateDetector(required_stable_frames=4)
+    detector.update(solved_face("Y"))
+    detector.update(solved_face("Y"))
+    detector.update(solved_face("Y"))
+
+    status = detector.update(FaceState(tuple("RYYYYYYYY")))
+
+    assert status.stable_frames == 2
+    assert not status.visible_face_solved
+
+
+def test_intermittent_good_frames_can_still_confirm_face() -> None:
+    detector = SolvedStateDetector(required_stable_frames=4)
+    unsolved = FaceState(tuple("YRRRRRRRR"))
+    observations = [
+        solved_face("R"),
+        solved_face("R"),
+        unsolved,
+        solved_face("R"),
+        solved_face("R"),
+        solved_face("R"),
+    ]
+
+    for state in observations:
+        status = detector.update(state)
+
+    assert status.visible_face_solved
+    assert "R" in status.confirmed_faces
+
+
 def test_sustained_unsolved_face_removes_only_that_center() -> None:
     detector = SolvedStateDetector(required_stable_frames=1, unsolved_stable_frames=2)
     detector.update(solved_face("R"))

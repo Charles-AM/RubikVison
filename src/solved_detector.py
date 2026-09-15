@@ -20,14 +20,14 @@ class SolvedStatus:
 
 
 class SolvedStateDetector:
-    """Confirm solved faces over time and require all six for completion."""
+    """Accumulate solved-face evidence over time and require all six."""
 
     def __init__(
         self,
         required_stable_frames: int = 15,
         minimum_confidence: float = 0.50,
         unsolved_stable_frames: int = 5,
-        missing_tolerance_frames: int = 5,
+        missing_tolerance_frames: int = 10,
     ) -> None:
         if required_stable_frames < 1:
             raise ValueError("required_stable_frames must be at least 1.")
@@ -55,8 +55,13 @@ class SolvedStateDetector:
         self._missing_frames = 0
 
         if not face_uniform or not sufficiently_confident:
-            self._current_center = None
-            self._stable_frames = 0
+            if state.center == self._current_center:
+                # An isolated glare or classification error should not erase
+                # all accumulated evidence. Decay gradually instead.
+                self._stable_frames = max(0, self._stable_frames - 1)
+            else:
+                self._current_center = state.center
+                self._stable_frames = 0
             if not face_uniform:
                 if state.center == self._unsolved_center:
                     self._unsolved_frames += 1
@@ -65,6 +70,9 @@ class SolvedStateDetector:
                     self._unsolved_frames = 1
                 if self._unsolved_frames >= self.unsolved_stable_frames:
                     self._confirmed_faces.discard(state.center)
+            else:
+                self._unsolved_center = None
+                self._unsolved_frames = 0
             return self.status()
 
         self._unsolved_center = None
@@ -120,7 +128,7 @@ def draw_solved_status(frame: np.ndarray, status: SolvedStatus) -> np.ndarray:
         color = (70, 255, 90)
     elif status.stable_frames:
         line_one = (
-            "Confirming solved face: "
+            "Solved-face evidence: "
             f"{status.stable_frames}/{status.required_stable_frames}"
         )
         color = (0, 215, 255)
