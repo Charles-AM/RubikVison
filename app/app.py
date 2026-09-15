@@ -24,6 +24,7 @@ from src.cube_state import FaceState  # noqa: E402
 from src.face_detector import CubeFaceDetector, draw_detection  # noqa: E402
 from src.perspective import warp_face  # noqa: E402
 from src.progress import calculate_visible_face_progress, draw_face_progress  # noqa: E402
+from src.solved_detector import SolvedStateDetector, draw_solved_status  # noqa: E402
 from src.sticker_detector import draw_sticker_regions, extract_stickers  # noqa: E402
 from src.timer import SolveTimer, draw_timer  # noqa: E402
 from src.tracker import TemporalColorTracker  # noqa: E402
@@ -129,6 +130,8 @@ def run(
     classifier = HSVColorClassifier(calibration_path=CALIBRATION_PATH)
     tracker = TemporalColorTracker()
     timer = SolveTimer()
+    solved_detector = SolvedStateDetector()
+    completion_announced = False
 
     try:
         with VideoCapture(source) as capture:
@@ -169,6 +172,13 @@ def run(
                     face_state = FaceState.from_predictions(predictions)
                     progress = calculate_visible_face_progress(face_state)
                     draw_face_progress(frame, face_state, progress)
+                    average_confidence = sum(
+                        prediction.confidence for prediction in predictions
+                    ) / len(predictions)
+                    solved_status = solved_detector.update(
+                        face_state,
+                        average_confidence=average_confidence,
+                    )
                     draw_color_predictions(
                         normalized_face,
                         stickers,
@@ -178,9 +188,16 @@ def run(
                     cv2.imshow(FACE_WINDOW_NAME, normalized_face)
                 else:
                     tracker.mark_missing()
+                    solved_detector.mark_missing()
+                    solved_status = solved_detector.status()
                 draw_detection(frame, detection)
                 draw_fps(frame, counter.update())
                 draw_timer(frame, timer.snapshot())
+                draw_solved_status(frame, solved_status)
+                if solved_status.cube_solved and not completion_announced:
+                    timer.stop()
+                    completion_announced = True
+                    print(f"Cube solved in {timer.snapshot().display_time}.")
                 cv2.imshow(WINDOW_NAME, frame)
 
                 key = cv2.waitKey(1) & 0xFF
@@ -206,10 +223,15 @@ def run(
                         )
                         print(f"Captured {calibration_label} ({count}/6).")
                 elif not calibrate_colors and (key | 32) == ord("s"):
+                    if timer.snapshot().state != "running":
+                        solved_detector.reset()
+                        completion_announced = False
                     timer.toggle()
                     print(f"Timer {timer.snapshot().state}.")
                 elif not calibrate_colors and (key | 32) == ord("x"):
                     timer.reset()
+                    solved_detector.reset()
+                    completion_announced = False
                     print("Timer reset.")
     finally:
         cv2.destroyAllWindows()

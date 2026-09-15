@@ -18,10 +18,12 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Standard nine-character face state such as `RRWBGGYRB`
 - Visible-face consistency measured against the center sticker
 - Manual solve timer with ready, running, and stopped states
+- Fifteen-frame solved-face confirmation
+- Six-face solved-cube evidence with automatic timer stop
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Solved-state confirmation is intentionally deferred to the next checkpoint.
+Solve analytics persistence is intentionally deferred to the next checkpoint.
 
 ## Setup
 
@@ -65,6 +67,12 @@ python app/app.py --debug-colors
 
 During a normal run, type `S` in Terminal and press Enter to start or stop the
 solve timer. Type `X` and press Enter to reset it.
+
+A uniform visible face must remain stable for 15 consecutive frames before it
+is confirmed. To confirm the entire cube, show all six solved faces to the
+camera after the last unsolved face was observed. The timer stops automatically
+when all six center colors have been confirmed. This is visual evidence, not a
+full simultaneous reconstruction of the hidden cube state.
 
 Calibrate once for the current camera and lighting:
 
@@ -130,6 +138,7 @@ RubikVison/
 │   ├── face_detector.py # Edge/contour cube-face detector
 │   ├── perspective.py  # Square perspective transform
 │   ├── progress.py     # Visible-face consistency metrics
+│   ├── solved_detector.py # Stable solve confirmation
 │   ├── sticker_detector.py # 3x3 sticker extraction
 │   ├── timer.py        # Manual solve timer
 │   └── tracker.py      # Temporal color smoothing
@@ -142,6 +151,7 @@ RubikVison/
 │   ├── test_face_detector.py
 │   ├── test_perspective.py
 │   ├── test_progress.py
+│   ├── test_solved_detector.py
 │   ├── test_sticker_detector.py
 │   ├── test_timer.py
 │   └── test_tracker.py
@@ -152,4 +162,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is stable solved-state detection.
+The next milestone is persisted solve analytics.
