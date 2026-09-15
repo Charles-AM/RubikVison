@@ -27,6 +27,7 @@ class SolvedStateDetector:
         required_stable_frames: int = 15,
         minimum_confidence: float = 0.50,
         unsolved_stable_frames: int = 5,
+        missing_tolerance_frames: int = 5,
     ) -> None:
         if required_stable_frames < 1:
             raise ValueError("required_stable_frames must be at least 1.")
@@ -34,19 +35,24 @@ class SolvedStateDetector:
             raise ValueError("minimum_confidence must be in the range [0, 1].")
         if unsolved_stable_frames < 1:
             raise ValueError("unsolved_stable_frames must be at least 1.")
+        if missing_tolerance_frames < 0:
+            raise ValueError("missing_tolerance_frames cannot be negative.")
         self.required_stable_frames = required_stable_frames
         self.minimum_confidence = minimum_confidence
         self.unsolved_stable_frames = unsolved_stable_frames
+        self.missing_tolerance_frames = missing_tolerance_frames
         self._current_center: str | None = None
         self._stable_frames = 0
         self._confirmed_faces: set[str] = set()
         self._unsolved_center: str | None = None
         self._unsolved_frames = 0
+        self._missing_frames = 0
 
     def update(self, state: FaceState, average_confidence: float = 1.0) -> SolvedStatus:
         """Process one observed face and return current completion evidence."""
         face_uniform = all(sticker == state.center for sticker in state.stickers)
         sufficiently_confident = average_confidence >= self.minimum_confidence
+        self._missing_frames = 0
 
         if not face_uniform or not sufficiently_confident:
             self._current_center = None
@@ -74,11 +80,13 @@ class SolvedStateDetector:
         return self.status()
 
     def mark_missing(self) -> None:
-        """Break the consecutive-frame streak when no face is visible."""
-        self._current_center = None
-        self._stable_frames = 0
-        self._unsolved_center = None
-        self._unsolved_frames = 0
+        """Tolerate brief detection gaps before breaking the stable streak."""
+        self._missing_frames += 1
+        if self._missing_frames > self.missing_tolerance_frames:
+            self._current_center = None
+            self._stable_frames = 0
+            self._unsolved_center = None
+            self._unsolved_frames = 0
 
     def reset(self) -> None:
         self._current_center = None
@@ -86,6 +94,7 @@ class SolvedStateDetector:
         self._confirmed_faces.clear()
         self._unsolved_center = None
         self._unsolved_frames = 0
+        self._missing_frames = 0
 
     def status(self) -> SolvedStatus:
         visible_solved = (

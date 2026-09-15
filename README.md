@@ -73,6 +73,8 @@ A uniform visible face must remain stable for 15 consecutive frames before it
 is confirmed. To confirm the entire cube, show all six solved faces to the
 camera. Brief transitional frames while rotating the cube are ignored; five
 consecutive unsolved observations remove only that center color's confirmation.
+Up to five brief missed detections are tolerated without restarting the
+15-frame confirmation streak.
 The timer stops automatically when all six center colors have been confirmed.
 This is visual evidence, not a full simultaneous reconstruction of the hidden
 cube state.

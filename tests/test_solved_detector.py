@@ -23,9 +23,21 @@ def test_face_requires_consecutive_stable_frames() -> None:
     assert third.confirmed_faces == {"G"}
 
 
-def test_missing_frame_breaks_confirmation_streak() -> None:
-    detector = SolvedStateDetector(required_stable_frames=2)
+def test_brief_missing_frame_preserves_confirmation_streak() -> None:
+    detector = SolvedStateDetector(required_stable_frames=2, missing_tolerance_frames=1)
     detector.update(solved_face("B"))
+    detector.mark_missing()
+
+    status = detector.update(solved_face("B"))
+
+    assert status.stable_frames == 2
+    assert status.visible_face_solved
+
+
+def test_prolonged_missing_detection_breaks_confirmation_streak() -> None:
+    detector = SolvedStateDetector(required_stable_frames=2, missing_tolerance_frames=1)
+    detector.update(solved_face("B"))
+    detector.mark_missing()
     detector.mark_missing()
 
     status = detector.update(solved_face("B"))
