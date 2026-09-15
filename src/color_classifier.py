@@ -63,7 +63,8 @@ class HSVColorClassifier:
         self.white_saturation_max = white_saturation_max
         self.dark_value_min = dark_value_min
         self.calibration_path = Path(calibration_path) if calibration_path else None
-        self.prototypes = self._load_calibration()
+        self.calibration_samples = self._load_calibration()
+        self.prototypes = self._calculate_prototypes()
 
     @property
     def is_calibrated(self) -> bool:
@@ -71,14 +72,28 @@ class HSVColorClassifier:
         return REQUIRED_COLORS.issubset(self.prototypes)
 
     def calibrate(self, label: str, color_bgr: tuple[int, int, int]) -> None:
-        """Store one center-sticker reference and persist it when configured."""
+        """Append one center-sticker reference and persist it when configured."""
         if label not in REQUIRED_COLORS:
             raise ValueError(f"Unsupported calibration color: {label}")
-        self.prototypes[label] = tuple(int(value) for value in color_bgr)
+        sample = tuple(int(value) for value in color_bgr)
+        samples = self.calibration_samples.setdefault(label, [])
+        samples.append(sample)
+        # Bound the file while retaining a useful range of recent angles.
+        self.calibration_samples[label] = samples[-20:]
+        self.prototypes = self._calculate_prototypes()
         if self.calibration_path is not None:
             self.calibration_path.parent.mkdir(parents=True, exist_ok=True)
-            payload = {name: list(color) for name, color in sorted(self.prototypes.items())}
+            payload = {
+                "version": 2,
+                "colors": {
+                    name: [list(color) for color in samples]
+                    for name, samples in sorted(self.calibration_samples.items())
+                },
+            }
             self.calibration_path.write_text(json.dumps(payload, indent=2) + "\n")
+
+    def sample_count(self, label: str) -> int:
+        return len(self.calibration_samples.get(label, []))
 
     def classify(self, color_bgr: tuple[int, int, int]) -> tuple[str, float]:
         """Return a color label and heuristic confidence in the range [0, 1]."""
@@ -134,30 +149,57 @@ class HSVColorClassifier:
     ) -> tuple[str, float]:
         """Use illumination-resistant channel proportions after calibration."""
         sample = _chromaticity(color_bgr)
-        distances = sorted(
-            (
-                float(np.linalg.norm(sample - _chromaticity(prototype))),
-                label,
+        distances = []
+        for label, references in self.calibration_samples.items():
+            if label not in REQUIRED_COLORS or not references:
+                continue
+            nearest_reference = min(
+                float(np.linalg.norm(sample - _chromaticity(reference)))
+                for reference in references
             )
-            for label, prototype in self.prototypes.items()
-            if label in REQUIRED_COLORS
-        )
+            distances.append((nearest_reference, label))
+        distances.sort()
         nearest_distance, label = distances[0]
         second_distance = distances[1][0]
         separation = (second_distance - nearest_distance) / max(second_distance, 1e-6)
         confidence = 0.5 + 0.5 * max(0.0, separation)
         return label, _clamp_confidence(confidence)
 
-    def _load_calibration(self) -> dict[str, tuple[int, int, int]]:
+    def _calculate_prototypes(self) -> dict[str, tuple[int, int, int]]:
+        return {
+            label: tuple(
+                int(round(value))
+                for value in np.median(np.asarray(samples), axis=0)
+            )
+            for label, samples in self.calibration_samples.items()
+            if samples
+        }
+
+    def _load_calibration(self) -> dict[str, list[tuple[int, int, int]]]:
         if self.calibration_path is None or not self.calibration_path.is_file():
             return {}
         try:
             payload = json.loads(self.calibration_path.read_text())
-            return {
-                label: tuple(int(value) for value in payload[label])
-                for label in REQUIRED_COLORS
-                if label in payload and len(payload[label]) == 3
-            }
+            if not isinstance(payload, dict):
+                return {}
+            colors = payload.get("colors", payload)
+            loaded: dict[str, list[tuple[int, int, int]]] = {}
+            for label in REQUIRED_COLORS:
+                value = colors.get(label) if isinstance(colors, dict) else None
+                if not isinstance(value, list) or not value:
+                    continue
+                # Version 1 stored one BGR triplet directly.
+                raw_samples = [value] if len(value) == 3 and all(
+                    isinstance(item, (int, float)) for item in value
+                ) else value
+                valid_samples = [
+                    tuple(int(channel) for channel in sample)
+                    for sample in raw_samples
+                    if isinstance(sample, list) and len(sample) == 3
+                ]
+                if valid_samples:
+                    loaded[label] = valid_samples[-20:]
+            return loaded
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return {}
 

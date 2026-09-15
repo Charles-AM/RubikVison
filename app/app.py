@@ -165,7 +165,11 @@ def run(
                             pending_calibration_label,
                             center_color,
                         )
-                        print(f"Captured {pending_calibration_label} ({count}/6).")
+                        samples = classifier.sample_count(pending_calibration_label)
+                        print(
+                            f"Captured {pending_calibration_label} "
+                            f"({count}/6, {samples} samples)."
+                        )
                         pending_calibration_label = None
                     predictions = classifier.classify_regions(stickers)
                     predictions = tracker.update(predictions)
@@ -221,7 +225,11 @@ def run(
                             calibration_label,
                             center_color,
                         )
-                        print(f"Captured {calibration_label} ({count}/6).")
+                        samples = classifier.sample_count(calibration_label)
+                        print(
+                            f"Captured {calibration_label} "
+                            f"({count}/6, {samples} samples)."
+                        )
                 elif not calibrate_colors and (key | 32) == ord("s"):
                     if timer.snapshot().state != "running":
                         solved_detector.reset()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pytest
 
@@ -94,6 +96,32 @@ def test_complete_calibration_is_saved_and_reloaded(tmp_path) -> None:
 
     assert reloaded.is_calibrated
     assert reloaded.prototypes == REFERENCE_COLORS
+
+
+def test_repeated_calibration_keeps_multiple_angle_samples(tmp_path) -> None:
+    calibration_path = tmp_path / "color_calibration.json"
+    classifier = HSVColorClassifier(calibration_path=calibration_path)
+    for label, color in REFERENCE_COLORS.items():
+        classifier.calibrate(label, color)
+    angled_red = (45, 95, 195)
+    classifier.calibrate("red", angled_red)
+
+    reloaded = HSVColorClassifier(calibration_path=calibration_path)
+
+    assert reloaded.sample_count("red") == 2
+    assert reloaded.classify(angled_red)[0] == "red"
+    assert json.loads(calibration_path.read_text())["version"] == 2
+
+
+def test_version_one_calibration_is_migrated_on_load(tmp_path) -> None:
+    calibration_path = tmp_path / "color_calibration.json"
+    calibration_path.write_text(json.dumps({name: list(color) for name, color in REFERENCE_COLORS.items()}))
+
+    classifier = HSVColorClassifier(calibration_path=calibration_path)
+
+    assert classifier.is_calibrated
+    assert classifier.sample_count("yellow") == 1
+    assert classifier.prototypes == REFERENCE_COLORS
 
 
 @pytest.mark.parametrize(("label", "bgr"), REFERENCE_COLORS.items())

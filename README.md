@@ -15,6 +15,7 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Warm-color separation using a camera-stable green/red channel ratio
 - Rolling five-frame color vote with automatic face-change reset
 - Persistent camera/lighting calibration from six center stickers
+- Multi-angle calibration samples with automatic legacy-file migration
 - Standard nine-character face state such as `RRWBGGYRB`
 - Visible-face consistency measured against the center sticker
 - Manual solve timer with ready, running, and stopped states
@@ -93,6 +94,9 @@ substantially.
 Wait for the `Captured <color> (N/6).` confirmation before moving to the next
 face. If detection drops at the moment a command is entered, the app keeps that
 command pending and captures it automatically when the face is detected again.
+For colors that change under reflections—especially red and yellow—capture the
+same center three to five times at slightly different angles. Repeated captures
+are retained as separate references instead of replacing the earlier sample.
 
 Press `Q` or `Esc` while the video window is focused to quit. `Ctrl+C` in the
 terminal also stops the app cleanly. The app exits automatically when a video

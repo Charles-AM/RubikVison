@@ -25,7 +25,7 @@ class SolvedStateDetector:
     def __init__(
         self,
         required_stable_frames: int = 15,
-        minimum_confidence: float = 0.55,
+        minimum_confidence: float = 0.50,
         unsolved_stable_frames: int = 5,
     ) -> None:
         if required_stable_frames < 1:
