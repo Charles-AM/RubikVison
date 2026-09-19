@@ -21,10 +21,11 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Manual solve timer with ready, running, and stopped states
 - Fifteen-frame solved-face evidence with gradual noise decay
 - Six-face solved-cube evidence with automatic timer stop
+- Duplicate-safe CSV solve history with timing and quality metrics
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
-Solve analytics persistence is intentionally deferred to the next checkpoint.
+An analytics summary dashboard is intentionally deferred to the next checkpoint.
 
 ## Setup
 
@@ -78,6 +79,12 @@ without restarting the active evidence count.
 The timer stops automatically when all six center colors have been confirmed.
 This is visual evidence, not a full simultaneous reconstruction of the hidden
 cube state.
+
+Each validated timed solve is appended to `outputs/solve_history.csv`. If the
+timer is stopped manually before scanning the six solved faces, the preserved
+time is saved after validation. Records include completion time, solve time,
+frames processed during the timed portion, average FPS, average color
+confidence, and confirmed faces.
 
 Calibrate once for the current camera and lighting:
 
@@ -144,6 +151,7 @@ RubikVison/
 │   └── app.py          # CLI and OpenCV display loop
 ├── src/
 │   ├── camera.py       # Capture and FPS components
+│   ├── analytics.py    # Solve metrics and CSV persistence
 │   ├── color_classifier.py # Baseline HSV sticker classifier
 │   ├── cube_state.py   # Standard face-state representation
 │   ├── face_detector.py # Edge/contour cube-face detector
@@ -157,6 +165,7 @@ RubikVison/
 │   └── color_calibration.json # Local, generated calibration
 ├── tests/
 │   ├── test_camera.py  # Hardware-independent unit tests
+│   ├── test_analytics.py
 │   ├── test_color_classifier.py
 │   ├── test_cube_state.py
 │   ├── test_face_detector.py
@@ -173,4 +182,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is persisted solve analytics.
+The next milestone is an analytics summary dashboard.

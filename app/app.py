@@ -14,6 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.analytics import SolveHistory, SolveSession  # noqa: E402
 from src.camera import FPSCounter, VideoCapture  # noqa: E402
 from src.color_classifier import (  # noqa: E402
     REQUIRED_COLORS,
@@ -33,6 +34,7 @@ from src.tracker import TemporalColorTracker  # noqa: E402
 WINDOW_NAME = "RubikVision"
 FACE_WINDOW_NAME = "RubikVision - Normalized Face"
 CALIBRATION_PATH = PROJECT_ROOT / "config" / "color_calibration.json"
+SOLVE_HISTORY_PATH = PROJECT_ROOT / "outputs" / "solve_history.csv"
 CALIBRATION_KEYS = {
     ord("w"): "white",
     ord("y"): "yellow",
@@ -131,6 +133,8 @@ def run(
     tracker = TemporalColorTracker()
     timer = SolveTimer()
     solved_detector = SolvedStateDetector()
+    solve_session = SolveSession()
+    solve_history = SolveHistory(SOLVE_HISTORY_PATH)
     completion_announced = False
 
     try:
@@ -152,6 +156,7 @@ def run(
                     break
 
                 center_color = None
+                average_confidence = None
                 solved_status = solved_detector.status()
                 detection = detector.detect(frame)
                 if detection is not None:
@@ -198,14 +203,28 @@ def run(
                         solved_detector.mark_missing()
                         solved_status = solved_detector.status()
                 draw_detection(frame, detection)
-                draw_fps(frame, counter.update())
+                current_fps = counter.update()
+                solve_session.observe(current_fps, average_confidence)
+                if (
+                    not calibrate_colors
+                    and solved_status.cube_solved
+                    and not completion_announced
+                ):
+                    timer.stop()
+                    solve_session.pause()
+                    completion_announced = True
+                    snapshot = timer.snapshot()
+                    record = solve_session.complete(
+                        snapshot.elapsed_seconds,
+                        solved_status.confirmed_faces,
+                    )
+                    print(f"Cube solved in {snapshot.display_time}.")
+                    if record is not None and solve_history.append(record):
+                        print(f"Saved solve history to {SOLVE_HISTORY_PATH}.")
+                draw_fps(frame, current_fps)
                 if not calibrate_colors:
                     draw_timer(frame, timer.snapshot())
                     draw_solved_status(frame, solved_status)
-                    if solved_status.cube_solved and not completion_announced:
-                        timer.stop()
-                        completion_announced = True
-                        print(f"Cube solved in {timer.snapshot().display_time}.")
                 cv2.imshow(WINDOW_NAME, frame)
 
                 key = cv2.waitKey(1) & 0xFF
@@ -241,13 +260,20 @@ def run(
                     )
                 elif not calibrate_colors and (key | 32) == ord("s"):
                     if timer.snapshot().state != "running":
+                        if completion_announced:
+                            timer.reset()
+                            solve_session.reset()
                         solved_detector.reset()
                         completion_announced = False
+                        solve_session.start()
                     timer.toggle()
+                    if timer.snapshot().state != "running":
+                        solve_session.pause()
                     print(f"Timer {timer.snapshot().state}.")
                 elif not calibrate_colors and (key | 32) == ord("x"):
                     timer.reset()
                     solved_detector.reset()
+                    solve_session.reset()
                     completion_announced = False
                     print("Timer reset.")
     finally:
