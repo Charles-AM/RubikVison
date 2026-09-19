@@ -61,3 +61,43 @@ def test_history_rejects_duplicate_solve_id(tmp_path) -> None:
     with history.path.open(newline="") as handle:
         assert len(list(csv.DictReader(handle))) == 1
 
+
+def test_history_summary_calculates_aggregate_metrics(tmp_path) -> None:
+    history = SolveHistory(tmp_path / "solve_history.csv")
+    history.append(
+        SolveRecord("one", "2026-09-19T12:00:00+00:00", 60.0, 100, 20.0, 0.8, "WYROBG")
+    )
+    history.append(
+        SolveRecord("two", "2026-09-19T12:05:00+00:00", 120.0, 200, 30.0, 1.0, "WYROBG")
+    )
+
+    summary = history.summary()
+
+    assert summary is not None
+    assert summary.total_solves == 2
+    assert summary.fastest_seconds == 60.0
+    assert summary.slowest_seconds == 120.0
+    assert summary.average_seconds == 90.0
+    assert summary.median_seconds == 90.0
+    assert summary.average_fps == 25.0
+    assert summary.average_color_confidence == 0.9
+    assert "Average: 01:30.00" in summary.format()
+
+
+def test_history_summary_handles_empty_file(tmp_path) -> None:
+    history = SolveHistory(tmp_path / "missing.csv")
+    assert history.summary() is None
+
+
+def test_history_ignores_malformed_rows(tmp_path) -> None:
+    path = tmp_path / "solve_history.csv"
+    path.write_text(
+        "solve_id,completed_at,solve_time_seconds,frames_processed,average_fps,"
+        "average_color_confidence,confirmed_faces\n"
+        "broken,date,not-a-number,nope,nope,nope,WYROBG\n"
+    )
+
+    history = SolveHistory(path)
+
+    assert history.records() == []
+    assert history.summary() is None

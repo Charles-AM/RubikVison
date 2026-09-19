@@ -6,6 +6,7 @@ import csv
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
+from statistics import mean, median
 from uuid import uuid4
 
 
@@ -30,6 +31,32 @@ class SolveRecord:
     average_fps: float
     average_color_confidence: float
     confirmed_faces: str
+
+
+@dataclass(frozen=True)
+class SolveSummary:
+    total_solves: int
+    fastest_seconds: float
+    slowest_seconds: float
+    average_seconds: float
+    median_seconds: float
+    average_fps: float
+    average_color_confidence: float
+
+    def format(self) -> str:
+        """Return a compact terminal-friendly analytics report."""
+        return "\n".join(
+            (
+                "RubikVision Solve History",
+                f"Total solves: {self.total_solves}",
+                f"Fastest: {_format_duration(self.fastest_seconds)}",
+                f"Slowest: {_format_duration(self.slowest_seconds)}",
+                f"Average: {_format_duration(self.average_seconds)}",
+                f"Median: {_format_duration(self.median_seconds)}",
+                f"Average FPS: {self.average_fps:.2f}",
+                f"Average color confidence: {self.average_color_confidence:.1%}",
+            )
+        )
 
 
 class SolveSession:
@@ -123,6 +150,49 @@ class SolveHistory:
             writer.writerow(asdict(record))
         return True
 
+    def records(self) -> list[SolveRecord]:
+        """Load valid history rows while ignoring malformed entries."""
+        if not self.path.is_file() or self.path.stat().st_size == 0:
+            return []
+        records: list[SolveRecord] = []
+        with self.path.open(newline="") as handle:
+            for row in csv.DictReader(handle):
+                try:
+                    records.append(
+                        SolveRecord(
+                            solve_id=row["solve_id"],
+                            completed_at=row["completed_at"],
+                            solve_time_seconds=float(row["solve_time_seconds"]),
+                            frames_processed=int(row["frames_processed"]),
+                            average_fps=float(row["average_fps"]),
+                            average_color_confidence=float(
+                                row["average_color_confidence"]
+                            ),
+                            confirmed_faces=row["confirmed_faces"],
+                        )
+                    )
+                except (KeyError, TypeError, ValueError):
+                    continue
+        return records
+
+    def summary(self) -> SolveSummary | None:
+        """Calculate aggregate metrics, or None when no valid solves exist."""
+        records = self.records()
+        if not records:
+            return None
+        times = [record.solve_time_seconds for record in records]
+        return SolveSummary(
+            total_solves=len(records),
+            fastest_seconds=min(times),
+            slowest_seconds=max(times),
+            average_seconds=mean(times),
+            median_seconds=median(times),
+            average_fps=mean(record.average_fps for record in records),
+            average_color_confidence=mean(
+                record.average_color_confidence for record in records
+            ),
+        )
+
     def _contains(self, solve_id: str) -> bool:
         if not self.path.is_file() or self.path.stat().st_size == 0:
             return False
@@ -131,3 +201,7 @@ class SolveHistory:
                 row.get("solve_id") == solve_id for row in csv.DictReader(handle)
             )
 
+
+def _format_duration(seconds: float) -> str:
+    minutes, remaining = divmod(max(seconds, 0.0), 60)
+    return f"{int(minutes):02d}:{remaining:05.2f}"

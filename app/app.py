@@ -93,6 +93,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Capture the visible center sticker with W/Y/R/O/B/G keys.",
     )
+    parser.add_argument(
+        "--history",
+        action="store_true",
+        help="Print aggregate solve history without opening the camera.",
+    )
     return parser.parse_args()
 
 
@@ -285,6 +290,13 @@ def run(
 def main() -> int:
     args = parse_args()
     try:
+        if args.history:
+            summary = SolveHistory(SOLVE_HISTORY_PATH).summary()
+            if summary is None:
+                print("No completed solves have been saved yet.")
+            else:
+                print(summary.format())
+            return 0
         return run(
             args.source,
             debug_colors=args.debug_colors,

@@ -22,6 +22,7 @@ RubikVision is a real-time computer-vision project for tracking Rubik's Cube sol
 - Fifteen-frame solved-face evidence with gradual noise decay
 - Six-face solved-cube evidence with automatic timer stop
 - Duplicate-safe CSV solve history with timing and quality metrics
+- Terminal analytics summary for saved solve history
 - Graceful shutdown with `Q` or `Esc`
 - Unit tests that do not require a physical camera
 
@@ -69,6 +70,12 @@ python app/app.py --debug-colors
 
 During a normal run, type `S` in Terminal and press Enter to start or stop the
 solve timer. Type `X` and press Enter to reset it.
+
+View aggregate solve history without opening the camera:
+
+```bash
+python app/app.py --history
+```
 
 A uniform visible face builds toward 15 frames of evidence before it is
 confirmed. Isolated glare or classification errors reduce the evidence by one
@@ -182,4 +189,4 @@ RubikVison/
 
 ## Roadmap
 
-The next milestone is an analytics summary dashboard.
+The next milestone is a graphical Streamlit analytics dashboard.
